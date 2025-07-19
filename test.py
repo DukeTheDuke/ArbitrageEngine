@@ -15,6 +15,16 @@ class EvaluateDealsTest(unittest.TestCase):
         self.assertEqual(deals[0][0]["title"], "cheap phone")
         self.assertEqual(deals[0][1], 200)
 
+    def test_custom_threshold_detection(self):
+        engine = ArbitrageEngine(search_terms=[], deal_threshold=0.7)
+        listings = [
+            {"title": "under threshold", "price": 60, "market_value": 100},
+            {"title": "above threshold", "price": 80, "market_value": 100},
+        ]
+        deals = list(engine.evaluate_deals(listings))
+        self.assertEqual(len(deals), 1)
+        self.assertEqual(deals[0][0]["title"], "under threshold")
+
 
 class InitMarketplacesTest(unittest.TestCase):
     def test_custom_marketplaces(self):
@@ -47,6 +57,28 @@ class CLIMarketplacesTest(unittest.TestCase):
                     kwargs.get("marketplaces"),
                     ["ebay", "craigslist", "facebook"],
                 )
+
+
+class CLIThresholdTest(unittest.TestCase):
+    def test_cli_parses_threshold(self):
+        import sys
+        from unittest import mock
+
+        argv = [
+            "prog",
+            "item",
+            "--deal-threshold",
+            "0.25",
+        ]
+
+        with mock.patch.object(sys, "argv", argv):
+            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                from ArbitrageEngine import main
+
+                main()
+                AE.assert_called_once()
+                _, kwargs = AE.call_args
+                self.assertEqual(kwargs.get("deal_threshold"), 0.25)
 
 
 if __name__ == "__main__":
