@@ -59,7 +59,31 @@ class ArbitrageEngine:
         #     sleep(self.refresh_interval)
         pass
 
-# Example usage (would normally be placed under a `if __name__ == "__main__":` guard)
-# search_terms = ["iphone 12"]
-# engine = ArbitrageEngine(search_terms)
-# engine.run()
+
+def main() -> None:
+    """Simple command line interface for :class:`ArbitrageEngine`."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run the Arbitrage Engine")
+    parser.add_argument(
+        "search_terms",
+        nargs="+",
+        help="One or more search terms to look for across marketplaces.",
+    )
+    parser.add_argument(
+        "--refresh-interval",
+        type=int,
+        default=60,
+        help="How often to scan the marketplaces in seconds.",
+    )
+    args = parser.parse_args()
+
+    engine = ArbitrageEngine(
+        args.search_terms, refresh_interval=args.refresh_interval
+    )
+    engine.run()
+
+
+if __name__ == "__main__":
+    main()
+
