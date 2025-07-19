@@ -3,6 +3,14 @@
 A small demonstration project showing how one might build a tool to scan
 online marketplaces for potential arbitrage opportunities.
 
+## Installation
+
+Install the required dependencies with pip:
+
+```bash
+pip install aiohttp
+```
+
 ## Usage
 
 ```bash
