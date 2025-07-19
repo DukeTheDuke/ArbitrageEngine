@@ -4,8 +4,10 @@
 # various public marketplaces looking for arbitrage opportunities.
 # It illustrates how the engine could be organized in Python.
 
-import requests
+import asyncio
 from urllib.parse import quote_plus
+
+import aiohttp
 
 
 class ArbitrageEngine:
@@ -32,57 +34,73 @@ class ArbitrageEngine:
         """Return a URL encoded query string from the search terms."""
         return "+".join(quote_plus(term) for term in self.search_terms)
 
-    def query_facebook(self):
+    async def query_facebook(self, session):
         query = self._build_query()
         url = f"https://www.facebook.com/marketplace/search?q={query}"
         try:
-            requests.get(url, timeout=5)
-        except requests.RequestException:
+            async with session.get(url, timeout=5):
+                pass
+        except aiohttp.ClientError:
             return []
         return [{"title": f"Facebook listing for {query}", "price": None, "url": url}]
 
-    def query_ebay(self):
+    async def query_ebay(self, session):
         query = self._build_query()
         url = f"https://www.ebay.com/sch/i.html?_nkw={query}"
         try:
-            requests.get(url, timeout=5)
-        except requests.RequestException:
+            async with session.get(url, timeout=5):
+                pass
+        except aiohttp.ClientError:
             return []
         return [{"title": f"eBay listing for {query}", "price": None, "url": url}]
 
-    def query_craigslist(self):
+    async def query_craigslist(self, session):
         query = self._build_query()
         url = f"https://craigslist.org/search/sss?query={query}"
         try:
-            requests.get(url, timeout=5)
-        except requests.RequestException:
+            async with session.get(url, timeout=5):
+                pass
+        except aiohttp.ClientError:
             return []
         return [{"title": f"Craigslist listing for {query}", "price": None, "url": url}]
 
-    def query_aliexpress(self):
+    async def query_aliexpress(self, session):
         query = self._build_query()
         url = f"https://www.aliexpress.com/wholesale?SearchText={query}"
         try:
-            requests.get(url, timeout=5)
-        except requests.RequestException:
+            async with session.get(url, timeout=5):
+                pass
+        except aiohttp.ClientError:
             return []
         return [{"title": f"AliExpress listing for {query}", "price": None, "url": url}]
 
-    def fetch_listings(self):
-        """Fetch listings from each marketplace."""
-        for market in self.marketplaces:
-            query_func = getattr(self, f"query_{market}", None)
-            if not query_func:
+    async def fetch_listings(self):
+        """Fetch listings from each marketplace concurrently."""
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for market in self.marketplaces:
+                query_func = getattr(self, f"query_{market}", None)
+                if query_func:
+                    tasks.append(query_func(session))
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        listings = []
+        for result in results:
+            if isinstance(result, Exception):
                 continue
-            results = query_func()
-            for listing in results:
-                # ensure the listing has at least title, price, and url
-                normalized = {
-                    "title": listing.get("title"),
-                    "price": listing.get("price"),
-                    "url": listing.get("url"),
-                }
-                yield normalized
+            for listing in result:
+                listings.append(
+                    {
+                        "title": listing.get("title"),
+                        "price": listing.get("price"),
+                        "url": listing.get("url"),
+                    }
+                )
+        return listings
+
+    def fetch_listings_sync(self):
+        """Synchronous wrapper for :py:meth:`fetch_listings`."""
+        return asyncio.run(self.fetch_listings())
 
     def evaluate_deals(self, listings):
         """Evaluate listings to find underpriced items."""
@@ -130,14 +148,17 @@ class ArbitrageEngine:
         else:
             print(f"Deal found: {listing} (est. value ${predicted_price})")
 
-    def run(self):
+    async def run(self):
         """Continuously monitor marketplaces for deals."""
-        # while True:
-        #     listings = list(self.fetch_listings())
-        #     for listing, price in self.evaluate_deals(listings):
-        #         self.alert(listing, price)
-        #     sleep(self.refresh_interval)
-        pass
+        while True:
+            listings = await self.fetch_listings()
+            for listing, price in self.evaluate_deals(listings):
+                self.alert(listing, price)
+            await asyncio.sleep(self.refresh_interval)
+
+    def run_sync(self):
+        """Synchronous wrapper for :py:meth:`run`."""
+        asyncio.run(self.run())
 
 
 def main() -> None:
@@ -161,7 +182,7 @@ def main() -> None:
     engine = ArbitrageEngine(
         args.search_terms, refresh_interval=args.refresh_interval
     )
-    engine.run()
+    engine.run_sync()
 
 
 if __name__ == "__main__":
