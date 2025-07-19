@@ -47,6 +47,7 @@ class ArbitrageEngine:
             "ebay",
             "craigslist",
             "aliexpress",
+            "mercari",
         ]
         self.marketplaces = list(marketplaces) if marketplaces else default_markets
 
@@ -110,6 +111,15 @@ class ArbitrageEngine:
         except aiohttp.ClientError:
             return []
         return [{"title": f"AliExpress listing for {query}", "price": None, "url": url}]
+
+    async def query_mercari(self, session: aiohttp.ClientSession):
+        query = self._build_query()
+        url = f"https://www.mercari.com/search/?keyword={query}"
+        try:
+            await self._async_get(url, session)
+        except aiohttp.ClientError:
+            return []
+        return [{"title": f"Mercari listing for {query}", "price": None, "url": url}]
 
     async def fetch_listings(self):
         """Fetch listings from each marketplace concurrently."""
