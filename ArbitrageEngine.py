@@ -4,9 +4,30 @@
 # various public marketplaces looking for arbitrage opportunities.
 # It illustrates how the engine could be organized in Python.
 
-import requests
+import json
 from urllib.parse import quote_plus
 from time import sleep
+from typing import Any, Dict
+
+import requests
+
+
+def load_config(path: str) -> Dict[str, Any]:
+    """Return a dictionary parsed from ``path``.
+
+    The file may be in JSON or YAML format. If JSON decoding fails we fall
+    back to YAML using :mod:`yaml` if available.
+    """
+    with open(path, "r", encoding="utf-8") as fh:
+        data = fh.read()
+    try:
+        return json.loads(data)
+    except json.JSONDecodeError:
+        try:
+            import yaml  # type: ignore
+        except ImportError as exc:
+            raise RuntimeError("YAML support requires the 'PyYAML' package") from exc
+        return yaml.safe_load(data) or {}
 
 
 class ArbitrageEngine:
@@ -18,6 +39,7 @@ class ArbitrageEngine:
         refresh_interval=60,
         alert_callback=None,
         marketplaces=None,
+        deal_threshold=0.5,
     ):
         """Create a new engine instance.
 
@@ -32,13 +54,16 @@ class ArbitrageEngine:
         marketplaces : Iterable[str] | None, optional
             Restrict queries to these marketplaces. If ``None`` all
             known marketplaces will be queried.
+        deal_threshold : float, optional
+            Percentage of predicted value a listing must fall below to be
+            considered a deal.
         """
 
         # Store search settings supplied by the user
         self.search_terms = search_terms  # e.g. categories or keywords
         self.refresh_interval = refresh_interval  # how often to scan markets
         self.alert_callback = alert_callback  # function to run on a detected deal
-
+        
         default_markets = [
             "facebook",
             "ebay",
@@ -46,6 +71,7 @@ class ArbitrageEngine:
             "aliexpress",
         ]
         self.marketplaces = list(marketplaces) if marketplaces else default_markets
+        self.deal_threshold = deal_threshold
 
     # ------------------------------------------------------------------
     # Marketplace query helpers
@@ -109,8 +135,8 @@ class ArbitrageEngine:
     def evaluate_deals(self, listings):
         """Evaluate listings to find underpriced items."""
         # Iterate over listings and estimate each one's fair market value.
-        # If a listing's asking price is less than half of the predicted
-        # value, yield it as a potential deal.
+        # If a listing's asking price is less than ``deal_threshold`` of the
+        # predicted value, yield it as a potential deal.
         for listing in listings:
             predicted_price = self.predict_resale_value(listing)
             price = listing.get("price") if isinstance(listing, dict) else getattr(listing, "price", None)
@@ -118,7 +144,7 @@ class ArbitrageEngine:
             if price is None or predicted_price is None:
                 continue
 
-            if price < predicted_price * 0.5:
+            if price < predicted_price * self.deal_threshold:
                 yield listing, predicted_price
 
     def predict_resale_value(self, listing):
@@ -189,18 +215,35 @@ def main() -> None:
             "times or as a comma separated list."
         ),
     )
+    parser.add_argument(
+        "--config",
+        help="Path to JSON or YAML configuration file with default options.",
+    )
     args = parser.parse_args()
 
-    marketplaces = None
+    config: Dict[str, Any] = {}
+    if args.config:
+        config = load_config(args.config)
+
+    marketplaces = config.get("marketplaces")
     if args.marketplaces:
-        marketplaces = []
+        marketplaces = marketplaces or []
         for entry in args.marketplaces:
             marketplaces.extend([m for m in entry.split(",") if m])
 
+    search_terms = config.get("search_terms") or []
+    if args.search_terms:
+        search_terms = args.search_terms
+    refresh_interval = args.refresh_interval
+    if "refresh_interval" in config and args.refresh_interval == 60:
+        refresh_interval = config["refresh_interval"]
+    deal_threshold = config.get("deal_threshold", 0.5)
+
     engine = ArbitrageEngine(
-        args.search_terms,
-        refresh_interval=args.refresh_interval,
+        search_terms,
+        refresh_interval=refresh_interval,
         marketplaces=marketplaces,
+        deal_threshold=deal_threshold,
     )
     engine.run()
 

@@ -1,0 +1,8 @@
+search_terms:
+  - phone
+  - laptop
+marketplaces:
+  - ebay
+  - craigslist
+refresh_interval: 120
+deal_threshold: 0.4

@@ -49,5 +49,44 @@ class CLIMarketplacesTest(unittest.TestCase):
                 )
 
 
+class ConfigMergeTest(unittest.TestCase):
+    def test_cli_overrides_config(self):
+        import sys
+        import json
+        from tempfile import NamedTemporaryFile
+        from unittest import mock
+
+        cfg = {
+            "search_terms": ["fromcfg"],
+            "marketplaces": ["ebay"],
+            "refresh_interval": 30,
+            "deal_threshold": 0.4,
+        }
+        with NamedTemporaryFile("w", delete=False) as tmp:
+            json.dump(cfg, tmp)
+            path = tmp.name
+
+        argv = [
+            "prog",
+            "cli-term",
+            "--config",
+            path,
+            "--refresh-interval",
+            "45",
+        ]
+
+        with mock.patch.object(sys, "argv", argv):
+            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                from ArbitrageEngine import main
+
+                main()
+                AE.assert_called_once()
+                args_call, kwargs = AE.call_args
+                self.assertEqual(args_call[0], ["cli-term"])
+                self.assertEqual(kwargs.get("refresh_interval"), 45)
+                self.assertEqual(kwargs.get("marketplaces"), ["ebay"])
+                self.assertEqual(kwargs.get("deal_threshold"), 0.4)
+
+
 if __name__ == "__main__":
     unittest.main()
