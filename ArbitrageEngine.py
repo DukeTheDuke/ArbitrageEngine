@@ -4,9 +4,12 @@
 # various public marketplaces looking for arbitrage opportunities.
 # It illustrates how the engine could be organized in Python.
 
+import logging
 import requests
 from urllib.parse import quote_plus
 from time import sleep
+
+logger = logging.getLogger(__name__)
 
 
 class ArbitrageEngine:
@@ -18,6 +21,7 @@ class ArbitrageEngine:
         refresh_interval=60,
         alert_callback=None,
         marketplaces=None,
+        log_level=logging.INFO,
     ):
         """Create a new engine instance.
 
@@ -32,12 +36,15 @@ class ArbitrageEngine:
         marketplaces : Iterable[str] | None, optional
             Restrict queries to these marketplaces. If ``None`` all
             known marketplaces will be queried.
+        log_level : int, optional
+            Logging level for the engine's logger.
         """
 
         # Store search settings supplied by the user
         self.search_terms = search_terms  # e.g. categories or keywords
         self.refresh_interval = refresh_interval  # how often to scan markets
         self.alert_callback = alert_callback  # function to run on a detected deal
+        logger.setLevel(log_level)
 
         default_markets = [
             "facebook",
@@ -145,12 +152,15 @@ class ArbitrageEngine:
 
     def alert(self, listing, predicted_price):
         """Notify the user about a potential arbitrage opportunity."""
-        # Basic placeholder: print the deal. In a real application, this could
+        # Basic placeholder: log the deal. In a real application, this could
         # send an email, push notification, etc.
         if self.alert_callback:
+            logger.debug("Invoking alert callback for %s", listing)
             self.alert_callback(listing, predicted_price)
         else:
-            print(f"Deal found: {listing} (est. value ${predicted_price})")
+            logger.info(
+                "Deal found: %s (est. value $%s)", listing, predicted_price
+            )
 
     def run(self, iterations=None):
         """Continuously monitor marketplaces for deals."""
@@ -189,6 +199,11 @@ def main() -> None:
             "times or as a comma separated list."
         ),
     )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+    )
     args = parser.parse_args()
 
     marketplaces = None
@@ -197,10 +212,14 @@ def main() -> None:
         for entry in args.marketplaces:
             marketplaces.extend([m for m in entry.split(",") if m])
 
+    log_level = getattr(logging, args.log_level.upper(), logging.INFO)
+    logging.basicConfig(level=log_level)
+
     engine = ArbitrageEngine(
         args.search_terms,
         refresh_interval=args.refresh_interval,
         marketplaces=marketplaces,
+        log_level=log_level,
     )
     engine.run()
 
