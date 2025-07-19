@@ -19,6 +19,8 @@ python ArbitrageEngine.py SEARCH_TERMS [SEARCH_TERMS ...] [--refresh-interval SE
 
 The optional `--marketplaces` flag limits scanning to the specified
 sites. It can be provided multiple times or as a comma separated list.
+By default the engine queries `facebook`, `ebay`, `craigslist`,
+`aliexpress` and `mercari`.
 
 Use `--deal-threshold` to adjust what percentage of the predicted value
 is considered a bargain. The default is `0.5`.
@@ -26,5 +28,5 @@ is considered a bargain. The default is `0.5`.
 Use `--iterations` to run the engine for a specific number of scans before exiting.
 
 ```
-python ArbitrageEngine.py phone --marketplaces ebay,craigslist --marketplaces facebook
+python ArbitrageEngine.py phone --marketplaces ebay,craigslist --marketplaces mercari
 ```

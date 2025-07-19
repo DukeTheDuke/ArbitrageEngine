@@ -45,6 +45,10 @@ class InitMarketplacesTest(unittest.TestCase):
         engine = ArbitrageEngine(search_terms=[], marketplaces=["ebay"])
         self.assertEqual(engine.marketplaces, ["ebay"])
 
+    def test_default_includes_mercari(self):
+        engine = ArbitrageEngine(search_terms=[])
+        self.assertIn("mercari", engine.marketplaces)
+
 
 class CLIMarketplacesTest(unittest.TestCase):
     def test_cli_parses_marketplaces(self):
