@@ -47,6 +47,9 @@ class ArbitrageEngine:
         ]
         self.marketplaces = list(marketplaces) if marketplaces else default_markets
 
+        # Track previously seen listing URLs so duplicates can be filtered out
+        self.seen_urls: set[str] = set()
+
     # ------------------------------------------------------------------
     # Marketplace query helpers
     # ------------------------------------------------------------------
@@ -104,7 +107,22 @@ class ArbitrageEngine:
                     "price": listing.get("price"),
                     "url": listing.get("url"),
                 }
+                url = normalized.get("url")
+                if url is None:
+                    continue
+                if url in self.seen_urls:
+                    continue
+                self.seen_urls.add(url)
                 yield normalized
+
+    def prune_seen_urls(self, max_size: int | None = None) -> None:
+        """Shrink or clear the cache of seen URLs."""
+        if max_size is None:
+            self.seen_urls.clear()
+        else:
+            while len(self.seen_urls) > max_size:
+                # ``set.pop`` removes an arbitrary element
+                self.seen_urls.pop()
 
     def evaluate_deals(self, listings):
         """Evaluate listings to find underpriced items."""

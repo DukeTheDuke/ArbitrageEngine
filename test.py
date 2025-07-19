@@ -49,5 +49,31 @@ class CLIMarketplacesTest(unittest.TestCase):
                 )
 
 
+class FetchListingsDedupTest(unittest.TestCase):
+    def test_duplicate_urls_ignored(self):
+        engine = ArbitrageEngine(search_terms=[], marketplaces=["ebay"])
+
+        sample_listing = {
+            "title": "item",
+            "price": 10,
+            "url": "http://example.com/item",
+        }
+        returned = [sample_listing, sample_listing]
+
+        from unittest import mock
+
+        with mock.patch.object(engine, "query_ebay", return_value=returned):
+            first = list(engine.fetch_listings())
+            self.assertEqual(len(first), 1)
+
+            second = list(engine.fetch_listings())
+            self.assertEqual(len(second), 0)
+
+            engine.prune_seen_urls()
+
+            third = list(engine.fetch_listings())
+            self.assertEqual(len(third), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
