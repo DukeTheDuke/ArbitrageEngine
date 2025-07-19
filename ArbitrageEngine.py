@@ -33,13 +33,40 @@ class ArbitrageEngine:
 
     def evaluate_deals(self, listings):
         """Evaluate listings to find underpriced items."""
-        # Iterate over the collected listings, compare the listed price with
-        # an estimated fair market value. Example approach:
-        # for listing in listings:
-        #     predicted_price = predict_resale_value(listing)
-        #     if listing.price < predicted_price * 0.5:
-        #         yield listing, predicted_price
-        pass
+        # Iterate over listings and estimate each one's fair market value.
+        # If a listing's asking price is less than half of the predicted
+        # value, yield it as a potential deal.
+        for listing in listings:
+            predicted_price = self.predict_resale_value(listing)
+            price = listing.get("price") if isinstance(listing, dict) else getattr(listing, "price", None)
+
+            if price is None or predicted_price is None:
+                continue
+
+            if price < predicted_price * 0.5:
+                yield listing, predicted_price
+
+    def predict_resale_value(self, listing):
+        """Return a naive estimate of the listing's resale value."""
+        # This stub demonstrates where one could integrate an API call or a
+        # machine learning model.  If the listing already contains a market
+        # value field, prefer that.  Otherwise fall back to a simple heuristic.
+        if isinstance(listing, dict):
+            for key in ("market_value", "predicted_price", "estimated_price"):
+                if key in listing:
+                    return listing[key]
+            price = listing.get("price")
+        else:
+            for key in ("market_value", "predicted_price", "estimated_price"):
+                if hasattr(listing, key):
+                    return getattr(listing, key)
+            price = getattr(listing, "price", None)
+
+        if price is None:
+            return None
+
+        # Simple heuristic: assume potential resale value is 150% of asking price
+        return price * 1.5
 
     def alert(self, listing, predicted_price):
         """Notify the user about a potential arbitrage opportunity."""
