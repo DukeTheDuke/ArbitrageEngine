@@ -76,42 +76,38 @@ class ArbitrageEngine:
         async with session.get(url, timeout=5) as resp:
             return await resp.text()
 
-    async def query_facebook(self):
+    async def query_facebook(self, session: aiohttp.ClientSession):
         query = self._build_query()
         url = f"https://www.facebook.com/marketplace/search?q={query}"
         try:
-            async with aiohttp.ClientSession() as session:
-                await self._async_get(url, session)
+            await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
         return [{"title": f"Facebook listing for {query}", "price": None, "url": url}]
 
-    async def query_ebay(self):
+    async def query_ebay(self, session: aiohttp.ClientSession):
         query = self._build_query()
         url = f"https://www.ebay.com/sch/i.html?_nkw={query}"
         try:
-            async with aiohttp.ClientSession() as session:
-                await self._async_get(url, session)
+            await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
         return [{"title": f"eBay listing for {query}", "price": None, "url": url}]
 
-    async def query_craigslist(self):
+    async def query_craigslist(self, session: aiohttp.ClientSession):
         query = self._build_query()
         url = f"https://craigslist.org/search/sss?query={query}"
         try:
-            async with aiohttp.ClientSession() as session:
-                await self._async_get(url, session)
+            await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
         return [{"title": f"Craigslist listing for {query}", "price": None, "url": url}]
 
-    async def query_aliexpress(self):
+    async def query_aliexpress(self, session: aiohttp.ClientSession):
         query = self._build_query()
         url = f"https://www.aliexpress.com/wholesale?SearchText={query}"
         try:
-            async with aiohttp.ClientSession() as session:
-                await self._async_get(url, session)
+            await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
         return [{"title": f"AliExpress listing for {query}", "price": None, "url": url}]
@@ -119,25 +115,26 @@ class ArbitrageEngine:
     async def fetch_listings(self):
         """Fetch listings from each marketplace concurrently."""
         tasks = []
-        for market in self.marketplaces:
-            query_func = getattr(self, f"query_{market}", None)
-            if query_func:
-                tasks.append(asyncio.create_task(query_func()))
+        async with aiohttp.ClientSession() as session:
+            for market in self.marketplaces:
+                query_func = getattr(self, f"query_{market}", None)
+                if query_func:
+                    tasks.append(asyncio.create_task(query_func(session)))
 
-        listings = []
-        if tasks:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for result in results:
-                if isinstance(result, Exception):
-                    continue
-                for listing in result:
-                    normalized = {
-                        "title": listing.get("title"),
-                        "price": listing.get("price"),
-                        "url": listing.get("url"),
-                    }
-                    listings.append(normalized)
-        return listings
+            listings = []
+            if tasks:
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for result in results:
+                    if isinstance(result, Exception):
+                        continue
+                    for listing in result:
+                        normalized = {
+                            "title": listing.get("title"),
+                            "price": listing.get("price"),
+                            "url": listing.get("url"),
+                        }
+                        listings.append(normalized)
+            return listings
 
     def evaluate_deals(self, listings):
         """Evaluate listings to find underpriced items."""

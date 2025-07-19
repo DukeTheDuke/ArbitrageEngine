@@ -10,16 +10,16 @@ async def test_fetch_listings_combines_results(monkeypatch):
     expected_craigslist = [{"title": "from craigslist", "price": None, "url": None}]
     expected_aliexpress = [{"title": "from aliexpress", "price": None, "url": None}]
 
-    async def fake_fb(self):
+    async def fake_fb(self, session):
         return expected_fb
 
-    async def fake_ebay(self):
+    async def fake_ebay(self, session):
         return expected_ebay
 
-    async def fake_craigslist(self):
+    async def fake_craigslist(self, session):
         return expected_craigslist
 
-    async def fake_aliexpress(self):
+    async def fake_aliexpress(self, session):
         return expected_aliexpress
 
     monkeypatch.setattr(ArbitrageEngine, "query_facebook", fake_fb)
