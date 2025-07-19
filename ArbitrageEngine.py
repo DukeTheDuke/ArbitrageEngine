@@ -214,6 +214,12 @@ def main() -> None:
         default=0.5,
         help="Percentage of predicted value below which a listing is considered a deal.",
     )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=None,
+        help="Number of scan iterations to run before exiting.",
+    )
     args = parser.parse_args()
 
     marketplaces = None
@@ -228,7 +234,7 @@ def main() -> None:
         marketplaces=marketplaces,
         deal_threshold=args.deal_threshold,
     )
-    engine.run()
+    engine.run(iterations=args.iterations)
 
 
 if __name__ == "__main__":

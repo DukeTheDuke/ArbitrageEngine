@@ -81,5 +81,27 @@ class CLIThresholdTest(unittest.TestCase):
                 self.assertEqual(kwargs.get("deal_threshold"), 0.25)
 
 
+class CLIIterationsTest(unittest.TestCase):
+    def test_cli_forwards_iterations(self):
+        import sys
+        from unittest import mock
+
+        argv = [
+            "prog",
+            "item",
+            "--iterations",
+            "3",
+        ]
+
+        with mock.patch.object(sys, "argv", argv):
+            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                instance = AE.return_value
+                from ArbitrageEngine import main
+
+                main()
+                AE.assert_called_once()
+                instance.run.assert_called_once_with(iterations=3)
+
+
 if __name__ == "__main__":
     unittest.main()
