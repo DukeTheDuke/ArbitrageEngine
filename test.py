@@ -26,6 +26,20 @@ class EvaluateDealsTest(unittest.TestCase):
         self.assertEqual(deals[0][0]["title"], "under threshold")
 
 
+class AlertCallbackTest(unittest.TestCase):
+    def test_alert_callback_invoked(self):
+        from unittest import mock
+
+        callback = mock.Mock()
+        engine = ArbitrageEngine(search_terms=[], alert_callback=callback)
+        listings = [{"title": "steal", "price": 40, "market_value": 100}]
+
+        for listing, predicted in engine.evaluate_deals(listings):
+            engine.alert(listing, predicted)
+
+        callback.assert_called_once_with(listings[0], 100)
+
+
 class InitMarketplacesTest(unittest.TestCase):
     def test_custom_marketplaces(self):
         engine = ArbitrageEngine(search_terms=[], marketplaces=["ebay"])
