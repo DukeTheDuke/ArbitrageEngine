@@ -81,6 +81,28 @@ class CLIThresholdTest(unittest.TestCase):
                 self.assertEqual(kwargs.get("deal_threshold"), 0.25)
 
 
+class CLIRefreshIntervalTest(unittest.TestCase):
+    def test_cli_parses_refresh_interval(self):
+        import sys
+        from unittest import mock
+
+        argv = [
+            "prog",
+            "item",
+            "--refresh-interval",
+            "15",
+        ]
+
+        with mock.patch.object(sys, "argv", argv):
+            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                from ArbitrageEngine import main
+
+                main()
+                AE.assert_called_once()
+                _, kwargs = AE.call_args
+                self.assertEqual(kwargs.get("refresh_interval"), 15)
+
+
 class CLIIterationsTest(unittest.TestCase):
     def test_cli_forwards_iterations(self):
         import sys
