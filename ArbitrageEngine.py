@@ -11,19 +11,40 @@ from urllib.parse import quote_plus
 class ArbitrageEngine:
     """High level pseudocode for the arbitrage detection engine."""
 
-    def __init__(self, search_terms, refresh_interval=60, alert_callback=None):
+    def __init__(
+        self,
+        search_terms,
+        refresh_interval=60,
+        alert_callback=None,
+        marketplaces=None,
+    ):
+        """Create a new :class:`ArbitrageEngine` instance.
+
+        Parameters
+        ----------
+        search_terms : list[str]
+            Terms to search for on the configured marketplaces.
+        refresh_interval : int, optional
+            How often to poll the marketplaces in seconds.
+        alert_callback : callable, optional
+            Optional callback to invoke when a deal is found.
+        marketplaces : list[str], optional
+            Override the default marketplaces to scan.
+        """
+
         # Store search settings supplied by the user
         self.search_terms = search_terms  # e.g. categories or keywords
         self.refresh_interval = refresh_interval  # how often to scan markets
         self.alert_callback = alert_callback  # function to run on a detected deal
 
         # Placeholder for fetched listings and other internal state
-        self.marketplaces = [
+        default_markets = [
             "facebook",
             "ebay",
             "craigslist",
             "aliexpress",
         ]
+        self.marketplaces = marketplaces if marketplaces is not None else default_markets
 
     # ------------------------------------------------------------------
     # Marketplace query helpers
@@ -156,10 +177,17 @@ def main() -> None:
         default=60,
         help="How often to scan the marketplaces in seconds.",
     )
+    parser.add_argument(
+        "--marketplaces",
+        default="facebook,ebay,craigslist,aliexpress",
+        help="Comma-separated list of marketplaces to scan.",
+    )
     args = parser.parse_args()
 
     engine = ArbitrageEngine(
-        args.search_terms, refresh_interval=args.refresh_interval
+        args.search_terms,
+        refresh_interval=args.refresh_interval,
+        marketplaces=[m.strip() for m in args.marketplaces.split(",") if m.strip()],
     )
     engine.run()
 
