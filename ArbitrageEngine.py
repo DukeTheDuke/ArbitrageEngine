@@ -6,6 +6,7 @@
 
 import requests
 from urllib.parse import quote_plus
+from time import sleep
 
 
 class ArbitrageEngine:
@@ -130,14 +131,17 @@ class ArbitrageEngine:
         else:
             print(f"Deal found: {listing} (est. value ${predicted_price})")
 
-    def run(self):
+    def run(self, iterations=None):
         """Continuously monitor marketplaces for deals."""
-        # while True:
-        #     listings = list(self.fetch_listings())
-        #     for listing, price in self.evaluate_deals(listings):
-        #         self.alert(listing, price)
-        #     sleep(self.refresh_interval)
-        pass
+        runs = 0
+        while True:
+            listings = list(self.fetch_listings())
+            for listing, price in self.evaluate_deals(listings):
+                self.alert(listing, price)
+            runs += 1
+            if iterations is not None and runs >= iterations:
+                break
+            sleep(self.refresh_interval)
 
 
 def main() -> None:
