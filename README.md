@@ -15,3 +15,11 @@ sites. It can be provided multiple times or as a comma separated list.
 ```
 python ArbitrageEngine.py phone --marketplaces ebay,craigslist --marketplaces facebook
 ```
+
+## Dependencies
+
+Install the required libraries before running the engine:
+
+```bash
+pip install requests beautifulsoup4
+```

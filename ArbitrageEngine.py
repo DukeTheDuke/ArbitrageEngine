@@ -7,6 +7,8 @@
 import requests
 from urllib.parse import quote_plus
 from time import sleep
+import re
+from bs4 import BeautifulSoup
 
 
 class ArbitrageEngine:
@@ -54,41 +56,64 @@ class ArbitrageEngine:
         """Return a URL encoded query string from the search terms."""
         return "+".join(quote_plus(term) for term in self.search_terms)
 
+    def _extract_first_price(self, html):
+        """Return the first price found in the given HTML string."""
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+            text = soup.get_text()
+        except Exception:
+            return None
+        match = re.search(r"\$([0-9,.]+)", text)
+        if not match:
+            return None
+        try:
+            return float(match.group(1).replace(",", ""))
+        except ValueError:
+            return None
+
     def query_facebook(self):
         query = self._build_query()
         url = f"https://www.facebook.com/marketplace/search?q={query}"
         try:
-            requests.get(url, timeout=5)
-        except requests.RequestException:
+            resp = requests.get(url, timeout=5)
+            resp.raise_for_status()
+            price = self._extract_first_price(resp.text)
+        except (requests.RequestException, Exception):
             return []
-        return [{"title": f"Facebook listing for {query}", "price": None, "url": url}]
+        return [{"title": f"Facebook listing for {query}", "price": price, "url": url}]
 
     def query_ebay(self):
         query = self._build_query()
         url = f"https://www.ebay.com/sch/i.html?_nkw={query}"
         try:
-            requests.get(url, timeout=5)
-        except requests.RequestException:
+            resp = requests.get(url, timeout=5)
+            resp.raise_for_status()
+            price = self._extract_first_price(resp.text)
+        except (requests.RequestException, Exception):
             return []
-        return [{"title": f"eBay listing for {query}", "price": None, "url": url}]
+        return [{"title": f"eBay listing for {query}", "price": price, "url": url}]
 
     def query_craigslist(self):
         query = self._build_query()
         url = f"https://craigslist.org/search/sss?query={query}"
         try:
-            requests.get(url, timeout=5)
-        except requests.RequestException:
+            resp = requests.get(url, timeout=5)
+            resp.raise_for_status()
+            price = self._extract_first_price(resp.text)
+        except (requests.RequestException, Exception):
             return []
-        return [{"title": f"Craigslist listing for {query}", "price": None, "url": url}]
+        return [{"title": f"Craigslist listing for {query}", "price": price, "url": url}]
 
     def query_aliexpress(self):
         query = self._build_query()
         url = f"https://www.aliexpress.com/wholesale?SearchText={query}"
         try:
-            requests.get(url, timeout=5)
-        except requests.RequestException:
+            resp = requests.get(url, timeout=5)
+            resp.raise_for_status()
+            price = self._extract_first_price(resp.text)
+        except (requests.RequestException, Exception):
             return []
-        return [{"title": f"AliExpress listing for {query}", "price": None, "url": url}]
+        return [{"title": f"AliExpress listing for {query}", "price": price, "url": url}]
 
     def fetch_listings(self):
         """Fetch listings from each marketplace."""

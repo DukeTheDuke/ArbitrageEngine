@@ -22,6 +22,26 @@ class InitMarketplacesTest(unittest.TestCase):
         self.assertEqual(engine.marketplaces, ["ebay"])
 
 
+class PriceExtractionTest(unittest.TestCase):
+    def test_extract_first_price(self):
+        engine = ArbitrageEngine(search_terms=[])
+        html = "<div><span>$19.99</span></div>"
+        self.assertEqual(engine._extract_first_price(html), 19.99)
+
+    def test_query_uses_extracted_price(self):
+        from unittest import mock
+
+        engine = ArbitrageEngine(search_terms=["phone"])
+        fake_response = mock.Mock()
+        fake_response.text = "<span>$42</span>"
+        fake_response.raise_for_status.return_value = None
+
+        with mock.patch("ArbitrageEngine.requests.get", return_value=fake_response):
+            listings = engine.query_ebay()
+
+        self.assertEqual(listings[0]["price"], 42.0)
+
+
 class CLIMarketplacesTest(unittest.TestCase):
     def test_cli_parses_marketplaces(self):
         import sys
