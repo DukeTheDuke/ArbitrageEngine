@@ -18,6 +18,7 @@ class ArbitrageEngine:
         refresh_interval=60,
         alert_callback=None,
         marketplaces=None,
+        deal_threshold=0.5,
     ):
         """Create a new engine instance.
 
@@ -38,6 +39,7 @@ class ArbitrageEngine:
         self.search_terms = search_terms  # e.g. categories or keywords
         self.refresh_interval = refresh_interval  # how often to scan markets
         self.alert_callback = alert_callback  # function to run on a detected deal
+        self.deal_threshold = deal_threshold  # percentage of value to trigger deal alert
 
         default_markets = [
             "facebook",
@@ -109,8 +111,8 @@ class ArbitrageEngine:
     def evaluate_deals(self, listings):
         """Evaluate listings to find underpriced items."""
         # Iterate over listings and estimate each one's fair market value.
-        # If a listing's asking price is less than half of the predicted
-        # value, yield it as a potential deal.
+        # If a listing's asking price is lower than the configured threshold
+        # of the predicted value, yield it as a potential deal.
         for listing in listings:
             predicted_price = self.predict_resale_value(listing)
             price = listing.get("price") if isinstance(listing, dict) else getattr(listing, "price", None)
@@ -118,7 +120,7 @@ class ArbitrageEngine:
             if price is None or predicted_price is None:
                 continue
 
-            if price < predicted_price * 0.5:
+            if price < predicted_price * self.deal_threshold:
                 yield listing, predicted_price
 
     def predict_resale_value(self, listing):
@@ -189,6 +191,12 @@ def main() -> None:
             "times or as a comma separated list."
         ),
     )
+    parser.add_argument(
+        "--deal-threshold",
+        type=float,
+        default=0.5,
+        help="Percentage of predicted value below which a listing is considered a deal.",
+    )
     args = parser.parse_args()
 
     marketplaces = None
@@ -201,6 +209,7 @@ def main() -> None:
         args.search_terms,
         refresh_interval=args.refresh_interval,
         marketplaces=marketplaces,
+        deal_threshold=args.deal_threshold,
     )
     engine.run()
 
