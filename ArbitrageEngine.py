@@ -5,9 +5,11 @@
 # It illustrates how the engine could be organized in Python.
 
 import asyncio
+import re
 from urllib.parse import quote_plus
 
 import aiohttp
+from bs4 import BeautifulSoup
 
 
 class ArbitrageEngine:
@@ -80,46 +82,150 @@ class ArbitrageEngine:
         query = self._build_query()
         url = f"https://www.facebook.com/marketplace/search?q={query}"
         try:
-            await self._async_get(url, session)
+            html = await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
-        return [{"title": f"Facebook listing for {query}", "price": None, "url": url}]
+        return self.parse_facebook(html, base_url="https://www.facebook.com")
 
     async def query_ebay(self, session: aiohttp.ClientSession):
         query = self._build_query()
         url = f"https://www.ebay.com/sch/i.html?_nkw={query}"
         try:
-            await self._async_get(url, session)
+            html = await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
-        return [{"title": f"eBay listing for {query}", "price": None, "url": url}]
+        soup = BeautifulSoup(html, "html.parser")
+        listings = []
+        for item in soup.select("li.s-item"):
+            title_el = item.select_one("h3.s-item__title")
+            price_el = item.select_one("span.s-item__price")
+            link_el = item.select_one("a.s-item__link")
+            if not (title_el and link_el):
+                continue
+            title = title_el.get_text(strip=True)
+            price = None
+            if price_el:
+                match = re.search(r"\$([0-9,.]+)", price_el.get_text())
+                if match:
+                    try:
+                        price = float(match.group(1).replace(",", ""))
+                    except ValueError:
+                        price = None
+            listings.append({"title": title, "price": price, "url": link_el["href"]})
+        return listings
 
     async def query_craigslist(self, session: aiohttp.ClientSession):
         query = self._build_query()
         url = f"https://craigslist.org/search/sss?query={query}"
         try:
-            await self._async_get(url, session)
+            html = await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
-        return [{"title": f"Craigslist listing for {query}", "price": None, "url": url}]
+        soup = BeautifulSoup(html, "html.parser")
+        listings = []
+        for item in soup.select("li.result-row"):
+            title_el = item.select_one("a.result-title")
+            price_el = item.select_one("span.result-price")
+            if not title_el:
+                continue
+            title = title_el.get_text(strip=True)
+            price = None
+            if price_el:
+                match = re.search(r"\$([0-9,.]+)", price_el.get_text())
+                if match:
+                    try:
+                        price = float(match.group(1).replace(",", ""))
+                    except ValueError:
+                        price = None
+            url_item = title_el["href"]
+            listings.append({"title": title, "price": price, "url": url_item})
+        return listings
 
     async def query_aliexpress(self, session: aiohttp.ClientSession):
         query = self._build_query()
         url = f"https://www.aliexpress.com/wholesale?SearchText={query}"
         try:
-            await self._async_get(url, session)
+            html = await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
-        return [{"title": f"AliExpress listing for {query}", "price": None, "url": url}]
+        soup = BeautifulSoup(html, "html.parser")
+        listings = []
+        for item in soup.select("a[href][title][target]"):
+            title = item.get("title")
+            href = item.get("href")
+            price_el = item.find_next("span", class_=lambda c: c and "price" in c)
+            price = None
+            if price_el:
+                match = re.search(r"\$([0-9,.]+)", price_el.get_text())
+                if match:
+                    try:
+                        price = float(match.group(1).replace(",", ""))
+                    except ValueError:
+                        price = None
+            if title and href:
+                listings.append({"title": title, "price": price, "url": href})
+        return listings
 
     async def query_mercari(self, session: aiohttp.ClientSession):
         query = self._build_query()
         url = f"https://www.mercari.com/search/?keyword={query}"
         try:
-            await self._async_get(url, session)
+            html = await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
-        return [{"title": f"Mercari listing for {query}", "price": None, "url": url}]
+        soup = BeautifulSoup(html, "html.parser")
+        listings = []
+        for item in soup.select("li[data-testid='ItemCell']"):
+            title_el = item.select_one("p[data-testid='ItemCell__name']")
+            price_el = item.select_one("p[data-testid='ItemCell__price']")
+            link_el = item.select_one("a")
+            if not (title_el and link_el):
+                continue
+            title = title_el.get_text(strip=True)
+            price = None
+            if price_el:
+                match = re.search(r"\$([0-9,.]+)", price_el.get_text())
+                if match:
+                    try:
+                        price = float(match.group(1).replace(",", ""))
+                    except ValueError:
+                        price = None
+            href = link_el.get("href")
+            if href and not href.startswith("http"):
+                href = f"https://www.mercari.com{href}"
+            listings.append({"title": title, "price": price, "url": href})
+        return listings
+
+    # ------------------------------------------------------------------
+    # HTML parsers
+    # ------------------------------------------------------------------
+    def parse_facebook(self, html: str, base_url: str) -> list[dict]:
+        """Extract listings from a Facebook Marketplace search page."""
+        soup = BeautifulSoup(html, "html.parser")
+        listings = []
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if "/marketplace/item/" not in href:
+                continue
+            title = a.get("title")
+            if not title:
+                for text in a.stripped_strings:
+                    if "$" not in text:
+                        title = text
+                        break
+            price = None
+            price_text = a.find(string=lambda t: t and "$" in t)
+            if price_text:
+                match = re.search(r"\$([0-9,.]+)", price_text)
+                if match:
+                    try:
+                        price = float(match.group(1).replace(",", ""))
+                    except ValueError:
+                        price = None
+            if not href.startswith("http"):
+                href = f"{base_url}{href}"
+            listings.append({"title": title, "price": price, "url": href})
+        return listings
 
     async def fetch_listings(self):
         """Fetch listings from each marketplace concurrently."""
