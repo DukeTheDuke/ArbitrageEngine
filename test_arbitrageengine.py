@@ -61,16 +61,17 @@ class CLIMarketplacesTest(unittest.TestCase):
         ]
 
         with mock.patch.object(sys, "argv", argv):
-            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
-                from ArbitrageEngine import main
+            with mock.patch("ArbitrageEngine.asyncio.run") as aiorun:
+                with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                    from ArbitrageEngine import main
 
-                main()
-                AE.assert_called_once()
-                _, kwargs = AE.call_args
-                self.assertEqual(
-                    kwargs.get("marketplaces"),
-                    ["ebay", "craigslist", "facebook"],
-                )
+                    main()
+                    AE.assert_called_once()
+                    _, kwargs = AE.call_args
+                    self.assertEqual(
+                        kwargs.get("marketplaces"),
+                        ["ebay", "craigslist", "facebook"],
+                    )
 
 
 class CLIThresholdTest(unittest.TestCase):
@@ -86,13 +87,14 @@ class CLIThresholdTest(unittest.TestCase):
         ]
 
         with mock.patch.object(sys, "argv", argv):
-            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
-                from ArbitrageEngine import main
+            with mock.patch("ArbitrageEngine.asyncio.run") as aiorun:
+                with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                    from ArbitrageEngine import main
 
-                main()
-                AE.assert_called_once()
-                _, kwargs = AE.call_args
-                self.assertEqual(kwargs.get("deal_threshold"), 0.25)
+                    main()
+                    AE.assert_called_once()
+                    _, kwargs = AE.call_args
+                    self.assertEqual(kwargs.get("deal_threshold"), 0.25)
 
 
 class CLIRefreshIntervalTest(unittest.TestCase):
@@ -108,13 +110,14 @@ class CLIRefreshIntervalTest(unittest.TestCase):
         ]
 
         with mock.patch.object(sys, "argv", argv):
-            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
-                from ArbitrageEngine import main
+            with mock.patch("ArbitrageEngine.asyncio.run") as aiorun:
+                with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                    from ArbitrageEngine import main
 
-                main()
-                AE.assert_called_once()
-                _, kwargs = AE.call_args
-                self.assertEqual(kwargs.get("refresh_interval"), 15)
+                    main()
+                    AE.assert_called_once()
+                    _, kwargs = AE.call_args
+                    self.assertEqual(kwargs.get("refresh_interval"), 15)
 
 
 class CLIIterationsTest(unittest.TestCase):
@@ -130,13 +133,15 @@ class CLIIterationsTest(unittest.TestCase):
         ]
 
         with mock.patch.object(sys, "argv", argv):
-            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
-                instance = AE.return_value
-                from ArbitrageEngine import main
+            with mock.patch("ArbitrageEngine.asyncio.run") as aiorun:
+                with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                    instance = AE.return_value
+                    from ArbitrageEngine import main
 
-                main()
-                AE.assert_called_once()
-                instance.run.assert_called_once_with(iterations=3)
+                    main()
+                    AE.assert_called_once()
+                    instance.run.assert_called_once_with(iterations=3)
+                    aiorun.assert_called_once_with(instance.run.return_value)
 
 
 if __name__ == "__main__":
