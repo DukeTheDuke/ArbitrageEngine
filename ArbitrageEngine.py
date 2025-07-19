@@ -6,7 +6,6 @@
 
 import asyncio
 from urllib.parse import quote_plus
-from time import sleep
 
 import aiohttp
 
@@ -182,17 +181,17 @@ class ArbitrageEngine:
         else:
             print(f"Deal found: {listing} (est. value ${predicted_price})")
 
-    def run(self, iterations=None):
+    async def run(self, iterations=None):
         """Continuously monitor marketplaces for deals."""
         runs = 0
         while True:
-            listings = asyncio.run(self.fetch_listings())
+            listings = await self.fetch_listings()
             for listing, price in self.evaluate_deals(listings):
                 self.alert(listing, price)
             runs += 1
             if iterations is not None and runs >= iterations:
                 break
-            sleep(self.refresh_interval)
+            await asyncio.sleep(self.refresh_interval)
 
 
 def main() -> None:
@@ -245,7 +244,7 @@ def main() -> None:
         marketplaces=marketplaces,
         deal_threshold=args.deal_threshold,
     )
-    engine.run(iterations=args.iterations)
+    asyncio.run(engine.run(iterations=args.iterations))
 
 
 if __name__ == "__main__":
