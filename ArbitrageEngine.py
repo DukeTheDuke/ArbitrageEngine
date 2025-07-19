@@ -4,6 +4,8 @@
 # various public marketplaces looking for arbitrage opportunities.
 # It illustrates how the engine could be organized in Python.
 
+from time import sleep
+
 class ArbitrageEngine:
     """High level pseudocode for the arbitrage detection engine."""
 
@@ -52,12 +54,14 @@ class ArbitrageEngine:
 
     def run(self):
         """Continuously monitor marketplaces for deals."""
-        # while True:
-        #     listings = list(self.fetch_listings())
-        #     for listing, price in self.evaluate_deals(listings):
-        #         self.alert(listing, price)
-        #     sleep(self.refresh_interval)
-        pass
+        try:
+            while True:
+                listings = list(self.fetch_listings() or [])
+                for listing, price in self.evaluate_deals(listings) or []:
+                    self.alert(listing, price)
+                sleep(self.refresh_interval)
+        except KeyboardInterrupt:
+            print("Stopping ArbitrageEngine.")
 
 # Example usage (would normally be placed under a `if __name__ == "__main__":` guard)
 # search_terms = ["iphone 12"]
