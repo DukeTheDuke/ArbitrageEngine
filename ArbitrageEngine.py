@@ -4,6 +4,7 @@
 # various public marketplaces looking for arbitrage opportunities.
 # It illustrates how the engine could be organized in Python.
 
+import csv
 import requests
 from urllib.parse import quote_plus
 from time import sleep
@@ -18,6 +19,7 @@ class ArbitrageEngine:
         refresh_interval=60,
         alert_callback=None,
         marketplaces=None,
+        csv_file=None,
     ):
         """Create a new engine instance.
 
@@ -32,12 +34,16 @@ class ArbitrageEngine:
         marketplaces : Iterable[str] | None, optional
             Restrict queries to these marketplaces. If ``None`` all
             known marketplaces will be queried.
+        csv_file : str | None, optional
+            If given, append found deals as CSV rows to this file.
         """
 
         # Store search settings supplied by the user
         self.search_terms = search_terms  # e.g. categories or keywords
         self.refresh_interval = refresh_interval  # how often to scan markets
         self.alert_callback = alert_callback  # function to run on a detected deal
+
+        self.csv_file = csv_file
 
         default_markets = [
             "facebook",
@@ -151,6 +157,10 @@ class ArbitrageEngine:
             self.alert_callback(listing, predicted_price)
         else:
             print(f"Deal found: {listing} (est. value ${predicted_price})")
+        if self.csv_file:
+            with open(self.csv_file, "a", newline="") as fh:
+                writer = csv.writer(fh)
+                writer.writerow([listing, predicted_price])
 
     def run(self, iterations=None):
         """Continuously monitor marketplaces for deals."""
@@ -189,6 +199,10 @@ def main() -> None:
             "times or as a comma separated list."
         ),
     )
+    parser.add_argument(
+        "--output-csv",
+        help="Write found deals to this CSV file.",
+    )
     args = parser.parse_args()
 
     marketplaces = None
@@ -201,6 +215,7 @@ def main() -> None:
         args.search_terms,
         refresh_interval=args.refresh_interval,
         marketplaces=marketplaces,
+        csv_file=args.output_csv,
     )
     engine.run()
 

@@ -49,5 +49,41 @@ class CLIMarketplacesTest(unittest.TestCase):
                 )
 
 
+class AlertCsvTest(unittest.TestCase):
+    def test_alert_appends_csv(self):
+        import csv
+        import os
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            path = tmp.name
+
+        try:
+            engine = ArbitrageEngine(search_terms=[], csv_file=path)
+            engine.alert({"title": "x"}, 1)
+            with open(path, newline="") as fh:
+                rows = list(csv.reader(fh))
+            self.assertEqual(rows[-1], ["{'title': 'x'}", "1"])
+        finally:
+            os.remove(path)
+
+
+class CLIOutputCsvTest(unittest.TestCase):
+    def test_cli_parses_output_csv(self):
+        import sys
+        from unittest import mock
+
+        argv = ["prog", "item", "--output-csv", "file.csv"]
+
+        with mock.patch.object(sys, "argv", argv):
+            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                from ArbitrageEngine import main
+
+                main()
+                AE.assert_called_once()
+                _, kwargs = AE.call_args
+                self.assertEqual(kwargs.get("csv_file"), "file.csv")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -15,3 +15,9 @@ sites. It can be provided multiple times or as a comma separated list.
 ```
 python ArbitrageEngine.py phone --marketplaces ebay,craigslist --marketplaces facebook
 ```
+
+Use the `--output-csv` option to append discovered deals to a CSV file:
+
+```
+python ArbitrageEngine.py phone --output-csv deals.csv
+```
