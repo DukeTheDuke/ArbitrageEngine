@@ -6,6 +6,9 @@
 
 import requests
 from urllib.parse import quote_plus
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ArbitrageEngine:
@@ -37,7 +40,8 @@ class ArbitrageEngine:
         url = f"https://www.facebook.com/marketplace/search?q={query}"
         try:
             requests.get(url, timeout=5)
-        except requests.RequestException:
+        except requests.RequestException as exc:
+            logger.exception("Request failed for %s", url)
             return []
         return [{"title": f"Facebook listing for {query}", "price": None, "url": url}]
 
@@ -46,7 +50,8 @@ class ArbitrageEngine:
         url = f"https://www.ebay.com/sch/i.html?_nkw={query}"
         try:
             requests.get(url, timeout=5)
-        except requests.RequestException:
+        except requests.RequestException as exc:
+            logger.exception("Request failed for %s", url)
             return []
         return [{"title": f"eBay listing for {query}", "price": None, "url": url}]
 
@@ -55,7 +60,8 @@ class ArbitrageEngine:
         url = f"https://craigslist.org/search/sss?query={query}"
         try:
             requests.get(url, timeout=5)
-        except requests.RequestException:
+        except requests.RequestException as exc:
+            logger.exception("Request failed for %s", url)
             return []
         return [{"title": f"Craigslist listing for {query}", "price": None, "url": url}]
 
@@ -64,7 +70,8 @@ class ArbitrageEngine:
         url = f"https://www.aliexpress.com/wholesale?SearchText={query}"
         try:
             requests.get(url, timeout=5)
-        except requests.RequestException:
+        except requests.RequestException as exc:
+            logger.exception("Request failed for %s", url)
             return []
         return [{"title": f"AliExpress listing for {query}", "price": None, "url": url}]
 
@@ -156,7 +163,14 @@ def main() -> None:
         default=60,
         help="How often to scan the marketplaces in seconds.",
     )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="Logging level, e.g. DEBUG or INFO",
+    )
     args = parser.parse_args()
+
+    logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO))
 
     engine = ArbitrageEngine(
         args.search_terms, refresh_interval=args.refresh_interval
