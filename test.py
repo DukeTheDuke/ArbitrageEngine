@@ -16,5 +16,38 @@ class EvaluateDealsTest(unittest.TestCase):
         self.assertEqual(deals[0][1], 200)
 
 
+class InitMarketplacesTest(unittest.TestCase):
+    def test_custom_marketplaces(self):
+        engine = ArbitrageEngine(search_terms=[], marketplaces=["ebay"])
+        self.assertEqual(engine.marketplaces, ["ebay"])
+
+
+class CLIMarketplacesTest(unittest.TestCase):
+    def test_cli_parses_marketplaces(self):
+        import sys
+        from unittest import mock
+
+        argv = [
+            "prog",
+            "item",
+            "--marketplaces",
+            "ebay,craigslist",
+            "--marketplaces",
+            "facebook",
+        ]
+
+        with mock.patch.object(sys, "argv", argv):
+            with mock.patch("ArbitrageEngine.ArbitrageEngine") as AE:
+                from ArbitrageEngine import main
+
+                main()
+                AE.assert_called_once()
+                _, kwargs = AE.call_args
+                self.assertEqual(
+                    kwargs.get("marketplaces"),
+                    ["ebay", "craigslist", "facebook"],
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

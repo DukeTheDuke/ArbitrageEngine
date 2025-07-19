@@ -12,19 +12,40 @@ from time import sleep
 class ArbitrageEngine:
     """High level pseudocode for the arbitrage detection engine."""
 
-    def __init__(self, search_terms, refresh_interval=60, alert_callback=None):
+    def __init__(
+        self,
+        search_terms,
+        refresh_interval=60,
+        alert_callback=None,
+        marketplaces=None,
+    ):
+        """Create a new engine instance.
+
+        Parameters
+        ----------
+        search_terms : list[str]
+            Keywords to search for on each marketplace.
+        refresh_interval : int, optional
+            How often to poll the marketplaces, by default ``60``.
+        alert_callback : callable | None, optional
+            Optional callback invoked when a deal is found.
+        marketplaces : Iterable[str] | None, optional
+            Restrict queries to these marketplaces. If ``None`` all
+            known marketplaces will be queried.
+        """
+
         # Store search settings supplied by the user
         self.search_terms = search_terms  # e.g. categories or keywords
         self.refresh_interval = refresh_interval  # how often to scan markets
         self.alert_callback = alert_callback  # function to run on a detected deal
 
-        # Placeholder for fetched listings and other internal state
-        self.marketplaces = [
+        default_markets = [
             "facebook",
             "ebay",
             "craigslist",
             "aliexpress",
         ]
+        self.marketplaces = list(marketplaces) if marketplaces else default_markets
 
     # ------------------------------------------------------------------
     # Marketplace query helpers
@@ -160,10 +181,26 @@ def main() -> None:
         default=60,
         help="How often to scan the marketplaces in seconds.",
     )
+    parser.add_argument(
+        "--marketplaces",
+        action="append",
+        help=(
+            "Limit scans to these marketplaces. Can be specified multiple "
+            "times or as a comma separated list."
+        ),
+    )
     args = parser.parse_args()
 
+    marketplaces = None
+    if args.marketplaces:
+        marketplaces = []
+        for entry in args.marketplaces:
+            marketplaces.extend([m for m in entry.split(",") if m])
+
     engine = ArbitrageEngine(
-        args.search_terms, refresh_interval=args.refresh_interval
+        args.search_terms,
+        refresh_interval=args.refresh_interval,
+        marketplaces=marketplaces,
     )
     engine.run()
 
