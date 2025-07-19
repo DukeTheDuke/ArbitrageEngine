@@ -58,13 +58,30 @@ class ArbitrageEngine:
         """Return a URL encoded query string from the search terms."""
         return "+".join(quote_plus(term) for term in self.search_terms)
 
+    async def _async_get(self, url: str, session: aiohttp.ClientSession) -> str:
+        """Fetch the response body for ``url`` using ``session``.
+
+        Parameters
+        ----------
+        url : str
+            The URL to request.
+        session : :class:`aiohttp.ClientSession`
+            An active HTTP session used to perform the request.
+
+        Returns
+        -------
+        str
+            The text body of the response.
+        """
+        async with session.get(url, timeout=5) as resp:
+            return await resp.text()
+
     async def query_facebook(self):
         query = self._build_query()
         url = f"https://www.facebook.com/marketplace/search?q={query}"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=5) as resp:
-                    await resp.text()
+                await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
         return [{"title": f"Facebook listing for {query}", "price": None, "url": url}]
@@ -74,8 +91,7 @@ class ArbitrageEngine:
         url = f"https://www.ebay.com/sch/i.html?_nkw={query}"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=5) as resp:
-                    await resp.text()
+                await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
         return [{"title": f"eBay listing for {query}", "price": None, "url": url}]
@@ -85,8 +101,7 @@ class ArbitrageEngine:
         url = f"https://craigslist.org/search/sss?query={query}"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=5) as resp:
-                    await resp.text()
+                await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
         return [{"title": f"Craigslist listing for {query}", "price": None, "url": url}]
@@ -96,8 +111,7 @@ class ArbitrageEngine:
         url = f"https://www.aliexpress.com/wholesale?SearchText={query}"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=5) as resp:
-                    await resp.text()
+                await self._async_get(url, session)
         except aiohttp.ClientError:
             return []
         return [{"title": f"AliExpress listing for {query}", "price": None, "url": url}]
