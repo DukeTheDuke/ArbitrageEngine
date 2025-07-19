@@ -192,7 +192,12 @@ class ArbitrageEngine:
             print(f"Deal found: {listing} (est. value ${predicted_price})")
 
     async def run(self, iterations=None):
-        """Continuously monitor marketplaces for deals."""
+        """Continuously monitor marketplaces for deals.
+
+        This coroutine repeatedly polls the configured marketplaces,
+        evaluates any discovered listings and then waits for the
+        configured refresh interval before the next scan.
+        """
         runs = 0
         while True:
             listings = await self.fetch_listings()
